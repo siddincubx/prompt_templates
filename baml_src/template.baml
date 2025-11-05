@@ -1,6 +1,7 @@
 class Template{
     text string
     variables string[]
+    title string
 }
 
 function CreateTemplate(requirement : string) -> Template{

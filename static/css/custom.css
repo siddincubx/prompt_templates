@@ -175,6 +175,268 @@
     border: 1px solid hsl(var(--b3));
 }
 
+/* Enhanced Statistics Cards */
+.stats-card {
+    background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+    border: 1px solid hsl(var(--b3));
+    border-radius: 1rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+}
+
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--p)), hsl(var(--s)));
+}
+
+.stats-card-primary::before {
+    background: linear-gradient(90deg, hsl(var(--p)), hsl(var(--p) / 0.7));
+}
+
+.stats-card-secondary::before {
+    background: linear-gradient(90deg, hsl(var(--s)), hsl(var(--s) / 0.7));
+}
+
+.stats-card-accent::before {
+    background: linear-gradient(90deg, hsl(var(--a)), hsl(var(--a) / 0.7));
+}
+
+.stats-card-info::before {
+    background: linear-gradient(90deg, hsl(var(--in)), hsl(var(--in) / 0.7));
+}
+
+.stats-card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, currentColor, transparent);
+    opacity: 0.1;
+}
+
+.stats-card-icon i {
+    font-size: 1.5rem;
+    z-index: 1;
+}
+
+.stats-card-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, hsl(var(--bc)), hsl(var(--bc) / 0.7));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats-card-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--bc) / 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stats-card-description {
+    font-size: 0.75rem;
+    color: hsl(var(--bc) / 0.6);
+    margin-top: 0.25rem;
+}
+
+/* Stats Card Skeleton */
+.stats-card-skeleton {
+    background: hsl(var(--b2));
+    border-radius: 1rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card-skeleton::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        hsl(var(--b3) / 0.4), 
+        transparent);
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.stats-card-skeleton .skeleton-icon {
+    width: 3rem;
+    height: 3rem;
+    background: hsl(var(--b3));
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.stats-card-skeleton .skeleton-value {
+    height: 2.25rem;
+    background: hsl(var(--b3));
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 60%;
+}
+
+.stats-card-skeleton .skeleton-label {
+    height: 1rem;
+    background: hsl(var(--b3));
+    border-radius: 0.25rem;
+    width: 80%;
+}
+
+/* Enhanced number formatting */
+.number-animated {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.number-animated.updated {
+    transform: scale(1.1);
+    color: hsl(var(--su));
+}
+
+/* Progress indicators for stats */
+.stat-progress {
+    height: 0.25rem;
+    background: hsl(var(--b3));
+    border-radius: 0.125rem;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.stat-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, hsl(var(--p)), hsl(var(--s)));
+    border-radius: inherit;
+    transition: width 1s ease;
+    width: 0%;
+}
+
+/* Stats summary enhancements */
+#stats-summary {
+    background: linear-gradient(135deg, 
+        hsl(var(--b2)), 
+        hsl(var(--b3) / 0.5),
+        hsl(var(--b2)));
+    backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--b3) / 0.5);
+}
+
+#stats-summary .divider {
+    margin: 1.5rem 0;
+    opacity: 0.3;
+}
+
+/* Icon containers in stats summary */
+.stats-summary-icon {
+    background: linear-gradient(135deg, currentColor, transparent);
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Badge enhancements */
+.badge-outline {
+    background: hsl(var(--b1) / 0.5);
+    border: 1px solid hsl(var(--bc) / 0.2);
+    color: hsl(var(--bc) / 0.8);
+    backdrop-filter: blur(5px);
+}
+
+.badge-outline:hover {
+    background: hsl(var(--b1) / 0.8);
+    border-color: hsl(var(--bc) / 0.3);
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments for stats */
+@media (max-width: 768px) {
+    .stats-card {
+        padding: 1rem;
+    }
+    
+    .stats-card-value {
+        font-size: 1.875rem;
+    }
+    
+    .stats-card-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .stats-card-icon i {
+        font-size: 1.25rem;
+    }
+    
+    #stats-summary {
+        padding: 1rem;
+    }
+    
+    #stats-summary .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Pulse animation for active states */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+}
+
+.stats-card:hover {
+    animation: pulse-glow 2s infinite;
+}
+
+/* Floating animation for icons */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.stats-card-icon:hover {
+    animation: float 1s ease-in-out infinite;
+}
+
 /* Custom button styles */
 .btn-gradient {
     background: linear-gradient(135deg, hsl(var(--p)), hsl(var(--s)));

@@ -2,6 +2,7 @@
 API routes for template operations
 """
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from typing import List, Optional
 
 from ..models import (
@@ -157,6 +158,98 @@ async def get_stats():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/stats/html", response_class=HTMLResponse)
+async def get_stats_html():
+    """Get template statistics as HTML"""
+    try:
+        stats = await template_service.get_stats()
+        
+        # Format numbers for display
+        def format_number(num):
+            if num >= 1000000:
+                return f"{num/1000000:.1f}M"
+            elif num >= 1000:
+                return f"{num/1000:.1f}K"
+            else:
+                return str(num)
+        
+        # Handle most used template display
+        most_used_name = stats.most_used_template.get('name', 'None') if stats.most_used_template else 'None'
+        most_used_count = stats.most_used_template.get('usage_count', 0) if stats.most_used_template else 0
+        
+        # Truncate long template names
+        display_name = most_used_name
+        if len(most_used_name) > 15:
+            display_name = most_used_name[:12] + '...'
+        
+        # Calculate progress percentages
+        usage_progress = min(stats.total_usage / max(stats.total_templates * 20, 1) * 100, 100) if stats.total_templates > 0 else 0
+        popular_progress = min(most_used_count / max(stats.total_usage, 1) * 100, 100) if stats.total_usage > 0 else 0
+        category_progress = min(stats.categories_count / 15 * 100, 100)  # Assume 15 is a good max
+        
+        # Create HTML for stats cards
+        html = f"""
+        <div class="stats-card stats-card-primary">
+            <div class="stats-card-icon text-primary">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stats-card-value number-animated">{stats.total_templates}</div>
+            <div class="stats-card-label">Total Templates</div>
+            <div class="stats-card-description">Available for use</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        
+        <div class="stats-card stats-card-secondary">
+            <div class="stats-card-icon text-secondary">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stats-card-value number-animated">{format_number(stats.total_usage)}</div>
+            <div class="stats-card-label">Total Usage</div>
+            <div class="stats-card-description">Templates executed</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: {usage_progress:.1f}%;"></div>
+            </div>
+        </div>
+        
+        <div class="stats-card stats-card-accent">
+            <div class="stats-card-icon text-accent">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="stats-card-value text-sm font-medium" title="{most_used_name}">{display_name}</div>
+            <div class="stats-card-label">Most Popular</div>
+            <div class="stats-card-description">{most_used_count} uses</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: {popular_progress:.1f}%;"></div>
+            </div>
+        </div>
+        
+        <div class="stats-card stats-card-info">
+            <div class="stats-card-icon text-info">
+                <i class="fas fa-tags"></i>
+            </div>
+            <div class="stats-card-value number-animated">{stats.categories_count}</div>
+            <div class="stats-card-label">Categories</div>
+            <div class="stats-card-description">Organized groups</div>
+            <div class="stat-progress">
+                <div class="stat-progress-fill" style="width: {category_progress:.1f}%;"></div>
+            </div>
+        </div>
+        """
+        
+        return HTMLResponse(content=html)
+    except Exception as e:
+        error_html = """
+        <div class="col-span-full text-center py-8">
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to load statistics. Please try again later.</span>
+            </div>
+        </div>
+        """
+        return HTMLResponse(content=error_html, status_code=200)
 
 @api_router.post("/preview-template")
 async def preview_template(template_text: str, variables: dict):

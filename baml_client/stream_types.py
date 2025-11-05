@@ -29,6 +29,7 @@ class StreamState(BaseModel, typing.Generic[StreamStateValueT]):
 class Template(BaseModel):
     text: typing.Optional[str] = None
     variables: typing.List[str]
+    title: typing.Optional[str] = None
 
 # #########################################################################
 # Generated type aliases (0)

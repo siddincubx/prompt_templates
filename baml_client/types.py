@@ -47,6 +47,7 @@ def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
 class Template(BaseModel):
     text: str
     variables: typing.List[str]
+    title: str
 
 # #########################################################################
 # Generated type aliases (0)

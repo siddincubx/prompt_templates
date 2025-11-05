@@ -28,59 +28,51 @@
     </div>
 </div>
 
-<!-- Statistics Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" hx-get="/api/stats" hx-trigger="load" hx-target="#stats-container">
-    <div id="stats-container" class="contents">
-        <!-- Stats will be loaded here -->
-        <div class="stat bg-base-200 rounded-lg">
-            <div class="stat-figure text-primary">
-                <i class="fas fa-file-alt text-3xl"></i>
-            </div>
-            <div class="stat-title">Total Templates</div>
-            <div class="stat-value">Loading...</div>
-        </div>
-        
-        <div class="stat bg-base-200 rounded-lg">
-            <div class="stat-figure text-secondary">
-                <i class="fas fa-chart-line text-3xl"></i>
-            </div>
-            <div class="stat-title">Total Usage</div>
-            <div class="stat-value">Loading...</div>
-        </div>
-        
-        <div class="stat bg-base-200 rounded-lg">
-            <div class="stat-figure text-accent">
-                <i class="fas fa-star text-3xl"></i>
-            </div>
-            <div class="stat-title">Most Used</div>
-            <div class="stat-value text-sm">Loading...</div>
-        </div>
-        
-        <div class="stat bg-base-200 rounded-lg">
-            <div class="stat-figure text-info">
-                <i class="fas fa-tags text-3xl"></i>
-            </div>
-            <div class="stat-title">Categories</div>
-            <div class="stat-value">Loading...</div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Templates -->
-<div class="card bg-base-200 shadow-xl">
-    <div class="card-body">
-        <h2 class="card-title text-2xl mb-4">
-            <i class="fas fa-clock mr-2"></i>
-            Recent Templates
+<!-- Statistics Section -->
+<section class="mb-8">
+    <div class="text-center mb-6">
+        <h2 class="text-3xl font-bold text-base-content mb-2">
+            <i class="fas fa-chart-bar mr-3 text-primary"></i>
+            Platform Statistics
         </h2>
-        
-        <div id="recent-templates" hx-get="/api/templates?limit=5" hx-trigger="load">
-            <div class="flex justify-center py-8">
-                <span class="loading loading-spinner loading-lg"></span>
-            </div>
+        <p class="text-base-content/70">Real-time insights into your template ecosystem</p>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="stats-loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="stats-card-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-value"></div>
+            <div class="skeleton-label"></div>
+        </div>
+        <div class="stats-card-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-value"></div>
+            <div class="skeleton-label"></div>
+        </div>
+        <div class="stats-card-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-value"></div>
+            <div class="skeleton-label"></div>
+        </div>
+        <div class="stats-card-skeleton">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-value"></div>
+            <div class="skeleton-label"></div>
         </div>
     </div>
-</div>
+    
+    <!-- Stats Content -->
+    <div id="stats-container" 
+         class="hidden grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+         hx-get="/api/stats/html" 
+         hx-trigger="load" 
+         hx-target="#stats-container"
+         hx-swap="innerHTML">
+        <!-- Dynamic stats will load here -->
+    </div>
+
+</section>
 
 <!-- Quick Actions -->
 <div class="mt-8">
@@ -133,17 +125,140 @@
 
 {% block scripts %}
 <script>
-// Handle stats loading
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    if (evt.detail.target.id === 'stats-container') {
-        // Stats loaded, can add any additional processing here
+// Enhanced stats loading and animations
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+    if (evt.detail.elt.id === 'stats-container') {
+        // Show loading skeleton
+        const loadingSkeleton = document.getElementById('stats-loading');
+        const statsContainer = document.getElementById('stats-container');
+        
+        if (loadingSkeleton && statsContainer) {
+            loadingSkeleton.style.display = 'grid';
+            statsContainer.style.display = 'none';
+        }
     }
 });
+
+// Handle successful stats loading
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'stats-container') {
+        // Hide loading skeleton and show stats
+        const loadingSkeleton = document.getElementById('stats-loading');
+        const statsContainer = document.getElementById('stats-container');
+        const statsSummary = document.getElementById('stats-summary');
+        
+        if (loadingSkeleton && statsContainer) {
+            loadingSkeleton.style.display = 'none';
+            statsContainer.style.display = 'grid';
+            statsContainer.classList.add('fade-in');
+            
+            if (statsSummary) {
+                statsSummary.style.display = 'block';
+                statsSummary.classList.add('fade-in');
+            }
+        }
+        
+        // Animate numbers and progress bars
+        animateStatsNumbers();
+        animateProgressBars();
+    }
+});
+
+// Handle stats loading errors
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.elt.id === 'stats-container') {
+        const loadingSkeleton = document.getElementById('stats-loading');
+        const statsContainer = document.getElementById('stats-container');
+        
+        if (loadingSkeleton && statsContainer) {
+            loadingSkeleton.style.display = 'none';
+            statsContainer.style.display = 'grid';
+            statsContainer.innerHTML = `
+                <div class="col-span-full text-center py-8">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Statistics temporarily unavailable. Please refresh to try again.</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+});
+
+function animateStatsNumbers() {
+    const numberElements = document.querySelectorAll('.number-animated');
+    
+    numberElements.forEach(el => {
+        const finalValue = el.textContent;
+        
+        // Skip if not a number
+        if (isNaN(parseInt(finalValue))) return;
+        
+        const finalNum = parseInt(finalValue.replace(/[^\d]/g, ''));
+        let currentNum = 0;
+        const increment = Math.ceil(finalNum / 50); // 50 steps
+        const duration = 1500; // 1.5 seconds
+        const stepTime = duration / 50;
+        
+        el.textContent = '0';
+        
+        const timer = setInterval(() => {
+            currentNum += increment;
+            if (currentNum >= finalNum) {
+                currentNum = finalNum;
+                clearInterval(timer);
+                el.classList.add('updated');
+                setTimeout(() => el.classList.remove('updated'), 300);
+            }
+            
+            // Format the number back to original format
+            if (finalValue.includes('K')) {
+                el.textContent = (currentNum / 1000).toFixed(1) + 'K';
+            } else if (finalValue.includes('M')) {
+                el.textContent = (currentNum / 1000000).toFixed(1) + 'M';
+            } else {
+                el.textContent = currentNum.toString();
+            }
+        }, stepTime);
+    });
+}
+
+function animateProgressBars() {
+    const progressBars = document.querySelectorAll('.stat-progress-fill');
+    
+    progressBars.forEach((bar, index) => {
+        const targetWidth = bar.style.width;
+        bar.style.width = '0%';
+        
+        setTimeout(() => {
+            bar.style.width = targetWidth;
+        }, 200 + (index * 100)); // Stagger the animations
+    });
+}
 
 // Handle recent templates loading
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     if (evt.detail.target.id === 'recent-templates') {
-        // Recent templates loaded
+        // Recent templates loaded - could add animations here
+        evt.detail.target.classList.add('fade-in');
+    }
+});
+
+// Auto-refresh stats every 5 minutes
+setInterval(() => {
+    const statsContainer = document.getElementById('stats-container');
+    if (statsContainer && !document.hidden) {
+        htmx.trigger(statsContainer, 'refresh');
+    }
+}, 300000); // 5 minutes
+
+// Refresh stats when page becomes visible again
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        const statsContainer = document.getElementById('stats-container');
+        if (statsContainer) {
+            htmx.trigger(statsContainer, 'refresh');
+        }
     }
 });
 </script>

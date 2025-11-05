@@ -29,7 +29,7 @@ class AIService:
             return {
                 "text": result.text,
                 "variables": result.variables,
-                "suggested_name": self._suggest_name_from_requirement(requirement),
+                "suggested_name": result.title,
                 "suggested_category": self._suggest_category_from_requirement(requirement)
             }
             
