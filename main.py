@@ -2,6 +2,7 @@
 Prompt Template Engine - FastAPI Web Application
 """
 import uvicorn
+import os
 from fastapi import FastAPI, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -68,11 +69,16 @@ async def server_error_handler(request: Request, exc: HTTPException):
 def main():
     """Main function to run the application"""
     print("Starting Prompt Template Engine...")
+    
+    # Get host and port from environment variables (for Railway deployment)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", 8000))
+    
     uvicorn.run(
         "main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
+        host=host,
+        port=port,
+        reload=False,  # Disable reload in production
         log_level="info"
     )
 
