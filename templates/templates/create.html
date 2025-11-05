@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+
+{% block title %}Create Template - Prompt Template Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">
+        <i class="fas fa-plus mr-2"></i>
+        Create New Template
+    </h1>
+    
+    <!-- Tab Navigation -->
+    <div role="tablist" class="tabs tabs-boxed mb-6">
+        <a role="tab" class="tab tab-active" id="ai-tab" onclick="switchTab('ai')">
+            <i class="fas fa-robot mr-2"></i>
+            AI Generate
+        </a>
+        <a role="tab" class="tab" id="manual-tab" onclick="switchTab('manual')">
+            <i class="fas fa-edit mr-2"></i>
+            Manual Create
+        </a>
+    </div>
+    
+    <!-- AI Generation Tab -->
+    <div id="ai-content" class="tab-panel block">
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-magic mr-2"></i>
+                    Generate Template with AI
+                </h2>
+                <p class="text-base-content/70 mb-4">
+                    Describe what you want your prompt template to accomplish, and AI will generate a template with variables for you.
+                </p>
+                
+                <form id="ai-generation-form">
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Requirement Description</span>
+                        </label>
+                        <textarea id="requirement-input" name="requirement" 
+                                  class="textarea textarea-bordered h-32" 
+                                  placeholder="Describe what you want your prompt template to do. For example: 'I want to generate personalized email invitations for events' or 'I want to create product descriptions for e-commerce'"
+                                  required></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Template Name (Optional)</span>
+                            </label>
+                            <input type="text" id="template-name-input" name="name" class="input input-bordered" 
+                                   placeholder="AI will suggest a name if left empty">
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Category (Optional)</span>
+                            </label>
+                            <select id="category-input" name="category" class="select select-bordered">
+                                <option value="">Select or let AI suggest</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions justify-end mt-6">
+                        <button type="submit" id="generate-btn" class="btn btn-primary">
+                            <i class="fas fa-magic mr-2"></i>
+                            Generate Template
+                            <span id="ai-loading" class="loading loading-spinner loading-sm hidden"></span>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- AI Generation Result -->
+                <div id="ai-result" class="mt-6"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Manual Creation Tab -->
+    <div id="manual-content" class="tab-panel hidden">
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-edit mr-2"></i>
+                    Create Template Manually
+                </h2>
+                <p class="text-base-content/70 mb-4">
+                    Create a template from scratch with full control over the structure and variables.
+                </p>
+                
+                {% if error %}
+                <div class="alert alert-error mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+                
+                <form id="manual-creation-form" method="post" action="/templates/create">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Template Name</span>
+                            </label>
+                            <input type="text" id="name" name="name" class="input input-bordered" 
+                                   value="{{ form_data.name if form_data else '' }}"
+                                   placeholder="e.g., email-invitation-template" required>
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Category</span>
+                            </label>
+                            <select id="category" name="category" class="select select-bordered">
+                                <option value="">Select a category</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}" 
+                                        {% if form_data and form_data.category == category %}selected{% endif %}>
+                                    {{ category }}
+                                </option>
+                                {% endfor %}
+                                <option value="custom">+ Add New Category</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">Description</span>
+                        </label>
+                        <textarea id="description" name="description" class="textarea textarea-bordered" 
+                                  placeholder="Brief description of what this template does"
+                                  rows="2">{{ form_data.description if form_data else '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">Template Text</span>
+                            <span class="label-text-alt">Use <%= variableName %> for variables</span>
+                        </label>
+                        <textarea id="text" name="text" class="textarea textarea-bordered h-48" 
+                                  placeholder="Write your template here. Use <%= variableName %> syntax for variables that users will fill in. Example:&#10;&#10;Generate a personalized email invitation for <%= eventName %>. The email should be addressed to <%= recipientName %> and mention that the event is on <%= eventDate %> at <%= location %>."
+                                  required
+                                  hx-trigger="keyup changed delay:500ms"
+                                  hx-post="/api/preview-template-form"
+                                  hx-target="#template-preview"
+                                  hx-include="this">{{ form_data.text if form_data else '' }}</textarea>
+                    </div>
+                    
+                    <!-- Template Preview -->
+                    <div class="mt-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">Preview</span>
+                            <span class="label-text-alt">See how your template will look</span>
+                        </label>
+                        <div id="template-preview" class="bg-base-300 p-4 rounded-lg border">
+                            <p class="text-base-content/50 italic">Start typing your template to see a preview...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions justify-end mt-6">
+                        <a href="/templates" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>
+                            Create Template
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(tab) {
+    console.log('🔄 Switching to tab:', tab);
+    
+    // Get all elements
+    const aiTab = document.getElementById('ai-tab');
+    const manualTab = document.getElementById('manual-tab');
+    const aiContent = document.getElementById('ai-content');
+    const manualContent = document.getElementById('manual-content');
+    
+    // Log current state
+    console.log('Elements found:', {
+        aiTab: !!aiTab,
+        manualTab: !!manualTab,
+        aiContent: !!aiContent,
+        manualContent: !!manualContent
+    });
+    
+    // Remove active classes from tabs
+    if (aiTab) aiTab.classList.remove('tab-active');
+    if (manualTab) manualTab.classList.remove('tab-active');
+    
+    // Hide all content using Tailwind classes
+    if (aiContent) {
+        aiContent.classList.add('hidden');
+        aiContent.classList.remove('block');
+    }
+    if (manualContent) {
+        manualContent.classList.add('hidden');
+        manualContent.classList.remove('block');
+    }
+    
+    // Show selected tab and content
+    if (tab === 'ai') {
+        console.log('🤖 Activating AI tab');
+        if (aiTab) aiTab.classList.add('tab-active');
+        if (aiContent) {
+            aiContent.classList.remove('hidden');
+            aiContent.classList.add('block');
+            console.log('✅ AI content should now be visible');
+        }
+    } else if (tab === 'manual') {
+        console.log('✏️ Activating Manual tab');
+        if (manualTab) manualTab.classList.add('tab-active');
+        if (manualContent) {
+            manualContent.classList.remove('hidden');
+            manualContent.classList.add('block');
+            console.log('✅ Manual content should now be visible');
+        }
+    }
+}
+
+// Handle AI generation form submission
+document.getElementById('ai-generation-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    console.log('🚀 AI Generation form submitted');
+    
+    const requirement = document.getElementById('requirement-input').value.trim();
+    const name = document.getElementById('template-name-input').value.trim();
+    const category = document.getElementById('category-input').value;
+    
+    console.log('📝 Form data:', { requirement, name, category });
+    
+    if (!requirement) {
+        console.log('❌ No requirement provided');
+        alert('Please enter a requirement description');
+        return;
+    }
+    
+    // Show loading state
+    const generateBtn = document.getElementById('generate-btn');
+    const loadingSpinner = document.getElementById('ai-loading');
+    console.log('⏳ Showing loading state');
+    generateBtn.disabled = true;
+    loadingSpinner.classList.remove('hidden');
+    
+    try {
+        const requestData = {
+            requirement: requirement,
+            name: name || null,
+            category: category || null
+        };
+        
+        console.log('📤 Sending request to API:', requestData);
+        
+        const response = await fetch('/api/generate-template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error Response:', errorText);
+            
+            let errorMessage;
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.detail || errorData.message || 'Failed to generate template';
+            } catch (parseError) {
+                errorMessage = `Server error (${response.status}): ${errorText}`;
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Generated template data:', data);
+        
+        displayGeneratedTemplate(data);
+        
+    } catch (error) {
+        console.error('💥 Error generating template:', error);
+        document.getElementById('ai-result').innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to generate template. Error: ${error.message}</span>
+            </div>
+        `;
+    } finally {
+        // Hide loading state
+        console.log('🔄 Restoring button state');
+        generateBtn.disabled = false;
+        loadingSpinner.classList.add('hidden');
+    }
+});
+
+// Function to display generated template
+function displayGeneratedTemplate(data) {
+    const aiResult = document.getElementById('ai-result');
+    aiResult.innerHTML = `
+        <div class="alert alert-success mb-4">
+            <i class="fas fa-check-circle"></i>
+            <span>Template generated successfully!</span>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Generated Template Display -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="fas fa-eye mr-2"></i>
+                        Generated Template
+                    </h3>
+                    
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">Template Text</span>
+                        </label>
+                        <div class="bg-base-200 p-4 rounded-lg border font-mono text-sm max-h-64 overflow-y-auto">
+                            <pre class="whitespace-pre-wrap">${data.text}</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Variables Detected (${data.variables.length})</span>
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.variables.length > 0 
+                                ? data.variables.map(v => `<span class="badge badge-primary">${v}</span>`).join('')
+                                : '<span class="text-base-content/50 italic">No variables detected</span>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Edit and Save Form -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <i class="fas fa-edit mr-2"></i>
+                        Edit & Save Template
+                    </h3>
+                    
+                    <form method="post" action="/templates/create" id="save-template-form">
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Template Name</span>
+                            </label>
+                            <input type="text" name="name" class="input input-bordered" 
+                                   value="${data.suggested_name || ''}" required>
+                        </div>
+                        
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Category</span>
+                            </label>
+                            <input type="text" name="category" class="input input-bordered" 
+                                   value="${data.suggested_category || ''}" 
+                                   placeholder="e.g., Email, Marketing, etc.">
+                        </div>
+                        
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text">Description</span>
+                            </label>
+                            <textarea name="description" class="textarea textarea-bordered" 
+                                      rows="2" placeholder="Brief description of what this template does"></textarea>
+                        </div>
+                        
+                        <div class="form-control mb-4">
+                            <label class="label">
+                                <span class="label-text font-semibold">Template Text</span>
+                                <span class="label-text-alt">You can edit this</span>
+                            </label>
+                            <textarea name="text" id="editable-template-text" class="textarea textarea-bordered h-40 font-mono text-sm" 
+                                      required>${data.text}</textarea>
+                        </div>
+                        
+                        <div class="card-actions justify-between">
+                            <button type="button" onclick="regenerateTemplate()" class="btn btn-outline">
+                                <i class="fas fa-refresh mr-2"></i>
+                                Regenerate
+                            </button>
+                            
+                            <div class="btn-group">
+                                <button type="button" onclick="previewTemplate()" class="btn btn-ghost">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    Preview
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save mr-2"></i>
+                                    Save Template
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to preview template with sample data
+function previewTemplate() {
+    const templateText = document.getElementById('editable-template-text').value;
+    const variables = extractVariablesFromText(templateText);
+    
+    if (variables.length === 0) {
+        alert('No variables found in template for preview');
+        return;
+    }
+    
+    // Create sample data for preview
+    const sampleData = {};
+    variables.forEach(variable => {
+        sampleData[variable] = `[${variable.toUpperCase()}]`;
+    });
+    
+    const previewText = fillTemplateVariables(templateText, sampleData);
+    
+    // Show preview modal
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-open';
+    modal.innerHTML = `
+        <div class="modal-box max-w-4xl">
+            <h3 class="font-bold text-lg mb-4">Template Preview</h3>
+            <div class="bg-base-200 p-4 rounded-lg">
+                <pre class="whitespace-pre-wrap">${previewText}</pre>
+            </div>
+            <div class="modal-action">
+                <button class="btn" onclick="this.closest('.modal').remove()">Close</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Utility function to extract variables from template text
+function extractVariablesFromText(text) {
+    const pattern = /<%=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*%>/g;
+    const variables = [];
+    let match;
+    
+    while ((match = pattern.exec(text)) !== null) {
+        if (!variables.includes(match[1])) {
+            variables.push(match[1]);
+        }
+    }
+    
+    return variables;
+}
+
+// Utility function to fill template variables
+function fillTemplateVariables(templateText, variables) {
+    let result = templateText;
+    
+    for (const [varName, varValue] of Object.entries(variables)) {
+        const patterns = [
+            new RegExp(`<%=\\s*${varName}\\s*%>`, 'g'),
+            new RegExp(`<%\\s*=\\s*${varName}\\s*%>`, 'g')
+        ];
+        
+        patterns.forEach(pattern => {
+            result = result.replace(pattern, varValue);
+        });
+    }
+    
+    return result;
+}
+
+// Handle AI generation result
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'ai-result') {
+        try {
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            if (data.text) {
+                evt.detail.target.innerHTML = `
+                    <div class="alert alert-success mb-4">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Template generated successfully!</span>
+                    </div>
+                    
+                    <div class="card bg-base-100 shadow-lg">
+                        <div class="card-body">
+                            <h3 class="card-title mb-4">
+                                <i class="fas fa-magic mr-2"></i>
+                                Generated Template
+                            </h3>
+                            
+                            <form method="post" action="/templates/create" id="ai-generated-form">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text font-semibold">Template Name</span>
+                                        </label>
+                                        <input type="text" name="name" class="input input-bordered" 
+                                               value="${data.suggested_name || ''}" required>
+                                    </div>
+                                    
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text">Category</span>
+                                        </label>
+                                        <input type="text" name="category" class="input input-bordered" 
+                                               value="${data.suggested_category || ''}" 
+                                               placeholder="e.g., Email, Marketing, etc.">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-control mt-4">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Description (Optional)</span>
+                                    </label>
+                                    <textarea name="description" class="textarea textarea-bordered" 
+                                              rows="2" placeholder="Brief description of what this template does"></textarea>
+                                </div>
+                                
+                                <div class="form-control mt-4">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Generated Template Text</span>
+                                        <span class="label-text-alt">You can edit this before saving</span>
+                                    </label>
+                                    <textarea name="text" class="textarea textarea-bordered h-40" 
+                                              required>${data.text}</textarea>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <label class="label">
+                                        <span class="label-text font-semibold">Variables Detected (${data.variables.length})</span>
+                                    </label>
+                                    <div class="flex flex-wrap gap-2 p-3 bg-base-200 rounded-lg">
+                                        ${data.variables.length > 0 
+                                            ? data.variables.map(v => `<span class="badge badge-primary">${v}</span>`).join('')
+                                            : '<span class="text-base-content/50 italic">No variables detected</span>'
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div class="card-actions justify-between mt-6">
+                                    <button type="button" onclick="regenerateTemplate()" class="btn btn-outline">
+                                        <i class="fas fa-refresh mr-2"></i>
+                                        Regenerate
+                                    </button>
+                                    
+                                    <div class="btn-group">
+                                        <button type="button" onclick="switchTab('manual')" class="btn btn-ghost">
+                                            <i class="fas fa-edit mr-2"></i>
+                                            Edit Manually
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save mr-2"></i>
+                                            Save Template
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error parsing AI generation result:', error);
+            evt.detail.target.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Error processing AI response. Please try again.</span>
+                </div>
+            `;
+        }
+    }
+});
+
+// Handle AI generation errors
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.target.id === 'ai-result') {
+        evt.detail.target.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to generate template. Please check your input and try again.</span>
+            </div>
+        `;
+    }
+});
+
+// Function to regenerate template
+function regenerateTemplate() {
+    document.getElementById('ai-result').innerHTML = '';
+    // Focus back on the requirement textarea
+    const requirementTextarea = document.querySelector('textarea[name="requirement"]');
+    if (requirementTextarea) {
+        requirementTextarea.focus();
+    }
+}
+
+// Handle category selection
+document.querySelector('select[name="category"]')?.addEventListener('change', function(e) {
+    if (e.target.value === 'custom') {
+        const customCategory = prompt('Enter new category name:');
+        if (customCategory) {
+            e.target.value = customCategory;
+        } else {
+            e.target.value = '';
+        }
+    }
+});
+</script>
+
+<!-- Ensure AI tab is visible by default -->
+<script>
+// Simple initialization to show AI tab
+document.addEventListener('DOMContentLoaded', function() {
+    const aiContent = document.getElementById('ai-content');
+    const manualContent = document.getElementById('manual-content');
+    
+    if (aiContent) {
+        aiContent.style.display = 'block';
+        aiContent.classList.remove('hidden');
+    }
+    if (manualContent) {
+        manualContent.style.display = 'none';
+        manualContent.classList.add('hidden');
+    }
+});
+
+// Handle HTMX errors for preview
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.target.id === 'template-preview') {
+        console.error('Preview error:', evt.detail);
+        evt.detail.target.innerHTML = '<p class="text-error">Preview temporarily unavailable</p>';
+    }
+});
+
+document.body.addEventListener('htmx:sendError', function(evt) {
+    if (evt.detail.target.id === 'template-preview') {
+        console.error('Preview network error:', evt.detail);
+        evt.detail.target.innerHTML = '<p class="text-warning">Connection error - preview unavailable</p>';
+    }
+});
+</script>
+{% endblock %}

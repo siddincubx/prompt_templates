@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Prompt Template Engine{% endblock %}</title>
+    
+    <!-- DaisyUI CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.8"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/custom.css') }}">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="min-h-screen bg-base-100">
+    <!-- Navigation -->
+    <nav class="navbar bg-primary text-primary-content shadow-lg">
+        <div class="navbar-start">
+            <div class="dropdown">
+                <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                </div>
+                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 text-base-content">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/templates">Browse Templates</a></li>
+                    <li><a href="/templates/create">Create Template</a></li>
+                </ul>
+            </div>
+            <a href="/" class="btn btn-ghost text-xl">
+                <i class="fas fa-magic mr-2"></i>
+                Prompt Engine
+            </a>
+        </div>
+        
+        <div class="navbar-center hidden lg:flex">
+            <ul class="menu menu-horizontal px-1">
+                <li><a href="/" class="{% if request.url.path == '/' %}active{% endif %}">
+                    <i class="fas fa-home mr-1"></i>Home
+                </a></li>
+                <li><a href="/templates" class="{% if '/templates' in request.url.path and '/create' not in request.url.path %}active{% endif %}">
+                    <i class="fas fa-list mr-1"></i>Browse Templates
+                </a></li>
+                <li><a href="/templates/create" class="{% if '/templates/create' in request.url.path %}active{% endif %}">
+                    <i class="fas fa-plus mr-1"></i>Create Template
+                </a></li>
+            </ul>
+        </div>
+        
+        <div class="navbar-end">
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 text-base-content">
+                    <li><a onclick="toggleTheme()"><i class="fas fa-palette mr-2"></i>Toggle Theme</a></li>
+                    <li><a href="/api/stats"><i class="fas fa-chart-bar mr-2"></i>Statistics</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-10 bg-base-200 text-base-content rounded mt-20">
+        <nav class="grid grid-flow-col gap-4">
+            <a href="/" class="link link-hover">Home</a>
+            <a href="/templates" class="link link-hover">Templates</a>
+            <a href="/templates/create" class="link link-hover">Create</a>
+        </nav>
+        <nav>
+            <div class="grid grid-flow-col gap-4">
+                <a href="#" class="text-2xl hover:text-primary"><i class="fab fa-github"></i></a>
+                <a href="#" class="text-2xl hover:text-primary"><i class="fab fa-twitter"></i></a>
+            </div>
+        </nav>
+        <aside>
+            <p>Copyright © 2024 - Prompt Template Engine</p>
+        </aside>
+    </footer>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load theme from localStorage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

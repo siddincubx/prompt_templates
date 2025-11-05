@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ template.name }} - Prompt Template Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">{{ template.name }}</h1>
+            <div class="flex items-center gap-2 mt-2">
+                {% if template.category %}
+                <span class="badge badge-primary">{{ template.category }}</span>
+                {% endif %}
+                <span class="text-sm text-base-content/60">
+                    <i class="fas fa-calendar mr-1"></i>
+                    Created {{ template.created_at.strftime('%B %d, %Y') }}
+                </span>
+                <span class="text-sm text-base-content/60">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    Used {{ template.usage_count }} time{{ 's' if template.usage_count != 1 else '' }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <a href="/templates/{{ template.id }}/use" class="btn btn-primary">
+                <i class="fas fa-play mr-2"></i>
+                Use Template
+            </a>
+            <a href="/templates/{{ template.id }}/edit" class="btn btn-outline">
+                <i class="fas fa-edit mr-2"></i>
+                Edit
+            </a>
+            <button onclick="deleteTemplate('{{ template.id }}')" class="btn btn-outline btn-error">
+                <i class="fas fa-trash mr-2"></i>
+                Delete
+            </button>
+        </div>
+    </div>
+    
+    <!-- Description -->
+    {% if template.description %}
+    <div class="card bg-base-200 shadow-lg mb-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-info-circle mr-2"></i>
+                Description
+            </h2>
+            <p>{{ template.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Variables -->
+    {% if template.variables %}
+    <div class="card bg-base-200 shadow-lg mb-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-tags mr-2"></i>
+                Variables ({{ template.variables|length }})
+            </h2>
+            <div class="flex flex-wrap gap-2 mt-2">
+                {% for variable in template.variables %}
+                <span class="badge badge-outline badge-lg">{{ variable }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Template Content -->
+    <div class="card bg-base-200 shadow-lg mb-6">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">
+                    <i class="fas fa-file-alt mr-2"></i>
+                    Template Content
+                </h2>
+                <button onclick="copyTemplate()" class="btn btn-sm btn-outline">
+                    <i class="fas fa-copy mr-2"></i>
+                    Copy
+                </button>
+            </div>
+            
+            <div class="bg-base-100 p-4 rounded-lg border font-mono text-sm">
+                <pre id="template-content" class="whitespace-pre-wrap">{{ template.text }}</pre>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Use Form -->
+    {% if template.variables %}
+    <div class="card bg-base-200 shadow-lg">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-lightning-bolt mr-2"></i>
+                Quick Use
+            </h2>
+            <p class="text-base-content/70 mb-4">
+                Fill in the variables below to generate your prompt instantly.
+            </p>
+            
+            <form hx-post="/api/templates/{{ template.id }}/use-form" 
+                  hx-target="#quick-result" 
+                  hx-swap="innerHTML"
+                  hx-indicator="#quick-loading">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for variable in template.variables %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ variable }}</span>
+                        </label>
+                        <input type="text" name="variable_values.{{ variable }}" 
+                               class="input input-bordered" 
+                               placeholder="Enter {{ variable }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="card-actions justify-end mt-6">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-magic mr-2"></i>
+                        Generate Prompt
+                        <span id="quick-loading" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Quick Result -->
+            <div id="quick-result" class="mt-6"></div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Navigation -->
+    <div class="flex justify-between mt-8">
+        <a href="/templates" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Templates
+        </a>
+        <a href="/templates/{{ template.id }}/use" class="btn btn-primary">
+            Use This Template
+            <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="delete-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">
+            <i class="fas fa-exclamation-triangle text-error mr-2"></i>
+            Confirm Deletion
+        </h3>
+        <p class="py-4">
+            Are you sure you want to delete the template "{{ template.name }}"? 
+            This action cannot be undone.
+        </p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="post" action="/templates/{{ template.id }}/delete">
+                <button type="submit" class="btn btn-error">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete Template
+                </button>
+            </form>
+        </div>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyTemplate() {
+    const content = document.getElementById('template-content').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        // Show success toast
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-top toast-end';
+        toast.innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check mr-2"></i>
+                <span>Template copied to clipboard!</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    });
+}
+
+function deleteTemplate(templateId) {
+    document.getElementById('delete-modal').showModal();
+}
+
+// Handle quick use result
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'quick-result') {
+        try {
+            console.log('Quick use HTMX response:', evt.detail.xhr.responseText);
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            
+            if (data.error) {
+                // Handle error response
+                evt.detail.target.innerHTML = `
+                    <div class="alert alert-error mb-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Error: ${data.error}</span>
+                    </div>
+                `;
+            } else if (data.final_prompt) {
+                // Handle success response
+                evt.detail.target.innerHTML = `
+                    <div class="alert alert-success mb-4">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Prompt generated successfully!</span>
+                    </div>
+                    
+                    <div class="card bg-base-100 shadow-lg">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="card-title">Generated Prompt</h3>
+                                <button onclick="copyGeneratedPrompt()" class="btn btn-sm btn-outline">
+                                    <i class="fas fa-copy mr-2"></i>
+                                    Copy
+                                </button>
+                            </div>
+                            
+                            <div class="bg-base-200 p-4 rounded-lg">
+                                <pre id="generated-prompt" class="whitespace-pre-wrap">${data.final_prompt}</pre>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h4 class="font-semibold mb-2">Variables Used:</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    ${Object.entries(data.variables_used).map(([key, value]) => 
+                                        `<span class="badge badge-outline">${key}: ${value}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error('Error parsing quick use response:', e);
+            evt.detail.target.innerHTML = `
+                <div class="alert alert-error mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>An error occurred while generating the prompt.</span>
+                </div>
+            `;
+        }
+    }
+});
+
+function copyGeneratedPrompt() {
+    const content = document.getElementById('generated-prompt').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        // Show success toast
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-top toast-end';
+        toast.innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check mr-2"></i>
+                <span>Generated prompt copied to clipboard!</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    });
+}
+</script>
+{% endblock %}

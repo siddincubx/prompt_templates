@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-base-100">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-6">Tab Test</h1>
+        
+        <!-- Tab Navigation -->
+        <div role="tablist" class="tabs tabs-boxed mb-6">
+            <a role="tab" class="tab tab-active" id="ai-tab" onclick="switchTab('ai')">
+                <i class="fas fa-robot mr-2"></i>
+                AI Generate
+            </a>
+            <a role="tab" class="tab" id="manual-tab" onclick="switchTab('manual')">
+                <i class="fas fa-edit mr-2"></i>
+                Manual Create
+            </a>
+        </div>
+        
+        <!-- AI Generation Tab -->
+        <div id="ai-content" class="tab-panel" style="display: block;">
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">AI Generate Content</h2>
+                    <p>This is the AI generation tab content. It should be visible by default.</p>
+                    
+                    <form id="ai-generation-form">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Requirement Description</span>
+                            </label>
+                            <textarea id="requirement-input" name="requirement" 
+                                      class="textarea textarea-bordered h-32" 
+                                      placeholder="Enter your requirement here..."
+                                      required></textarea>
+                        </div>
+                        
+                        <div class="card-actions justify-end mt-6">
+                            <button type="submit" id="generate-btn" class="btn btn-primary">
+                                Generate Template
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manual Creation Tab -->
+        <div id="manual-content" class="tab-panel hidden">
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Manual Create Content</h2>
+                    <p>This is the manual creation tab content. It should be hidden by default.</p>
+                    
+                    <form>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Template Name</span>
+                            </label>
+                            <input type="text" name="name" class="input input-bordered" 
+                                   placeholder="Enter template name..." required>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            console.log('Switching to tab:', tab);
+            
+            // Remove active class from all tabs
+            const aiTab = document.getElementById('ai-tab');
+            const manualTab = document.getElementById('manual-tab');
+            const aiContent = document.getElementById('ai-content');
+            const manualContent = document.getElementById('manual-content');
+            
+            // Remove active classes
+            if (aiTab) aiTab.classList.remove('tab-active');
+            if (manualTab) manualTab.classList.remove('tab-active');
+            
+            // Hide all content
+            if (aiContent) {
+                aiContent.classList.add('hidden');
+                aiContent.style.display = 'none';
+            }
+            if (manualContent) {
+                manualContent.classList.add('hidden');
+                manualContent.style.display = 'none';
+            }
+            
+            // Show selected tab and content
+            if (tab === 'ai') {
+                if (aiTab) aiTab.classList.add('tab-active');
+                if (aiContent) {
+                    aiContent.classList.remove('hidden');
+                    aiContent.style.display = 'block';
+                }
+            } else if (tab === 'manual') {
+                if (manualTab) manualTab.classList.add('tab-active');
+                if (manualContent) {
+                    manualContent.classList.remove('hidden');
+                    manualContent.style.display = 'block';
+                }
+            }
+            
+            console.log('Tab switch completed for:', tab);
+        }
+
+        // Initialize tabs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, ensuring AI tab is visible');
+            
+            const aiContent = document.getElementById('ai-content');
+            const manualContent = document.getElementById('manual-content');
+            
+            if (aiContent) {
+                aiContent.style.display = 'block';
+                aiContent.classList.remove('hidden');
+                console.log('AI content made visible');
+            }
+            if (manualContent) {
+                manualContent.style.display = 'none';
+                manualContent.classList.add('hidden');
+                console.log('Manual content hidden');
+            }
+        });
+    </script>
+</body>
+</html>

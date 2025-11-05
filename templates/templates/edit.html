@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ template.name }} - Prompt Template Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="/templates">Templates</a></li>
+                <li><a href="/templates/{{ template.id }}">{{ template.name }}</a></li>
+                <li>Edit</li>
+            </ul>
+        </div>
+        
+        <h1 class="text-3xl font-bold mt-2">
+            <i class="fas fa-edit mr-2"></i>
+            Edit Template
+        </h1>
+    </div>
+    
+    {% if error %}
+    <div class="alert alert-error mb-6">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+    
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <form method="post" action="/templates/{{ template.id }}/edit">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Template Name</span>
+                        </label>
+                        <input type="text" name="name" class="input input-bordered" 
+                               value="{{ template.name }}" required>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Category</span>
+                        </label>
+                        <select name="category" class="select select-bordered">
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}" 
+                                    {% if template.category == category %}selected{% endif %}>
+                                {{ category }}
+                            </option>
+                            {% endfor %}
+                            <option value="custom">+ Add New Category</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-control mt-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Description</span>
+                    </label>
+                    <textarea name="description" class="textarea textarea-bordered" 
+                              rows="2" placeholder="Brief description of what this template does"
+                              >{{ template.description or '' }}</textarea>
+                </div>
+                
+                <div class="form-control mt-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Template Text</span>
+                        <span class="label-text-alt">Use <%= variableName %> for variables</span>
+                    </label>
+                    <textarea name="text" id="template-text" class="textarea textarea-bordered h-48" 
+                              required
+                              hx-trigger="keyup changed delay:500ms"
+                              hx-post="/api/preview-template-form"
+                              hx-target="#template-preview"
+                              hx-include="this"
+                              >{{ template.text }}</textarea>
+                </div>
+                
+                <!-- Current Variables Display -->
+                <div class="mt-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Current Variables</span>
+                        <span class="label-text-alt">Detected from template text</span>
+                    </label>
+                    <div id="current-variables" class="flex flex-wrap gap-2 p-3 bg-base-100 rounded-lg border">
+                        {% for variable in template.variables %}
+                        <span class="badge badge-primary">{{ variable }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Template Preview -->
+                <div class="mt-4">
+                    <label class="label">
+                        <span class="label-text font-semibold">Preview</span>
+                        <span class="label-text-alt">Live preview of your template</span>
+                    </label>
+                    <div id="template-preview" class="bg-base-100 p-4 rounded-lg border">
+                        <pre class="whitespace-pre-wrap font-mono text-sm">{{ template.text }}</pre>
+                    </div>
+                </div>
+                
+                <!-- Metadata -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 p-4 bg-base-100 rounded-lg">
+                    <div>
+                        <span class="text-sm font-semibold">Created:</span>
+                        <span class="text-sm text-base-content/70">{{ template.created_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold">Last Updated:</span>
+                        <span class="text-sm text-base-content/70">{{ template.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold">Usage Count:</span>
+                        <span class="text-sm text-base-content/70">{{ template.usage_count }} time{{ 's' if template.usage_count != 1 else '' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold">Variables:</span>
+                        <span class="text-sm text-base-content/70">{{ template.variables|length }} variable{{ 's' if template.variables|length != 1 else '' }}</span>
+                    </div>
+                </div>
+                
+                <div class="card-actions justify-between mt-6">
+                    <div class="btn-group">
+                        <a href="/templates/{{ template.id }}" class="btn btn-ghost">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancel
+                        </a>
+                        <button type="button" onclick="resetForm()" class="btn btn-outline">
+                            <i class="fas fa-undo mr-2"></i>
+                            Reset
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="button" onclick="previewChanges()" class="btn btn-outline">
+                            <i class="fas fa-eye mr-2"></i>
+                            Preview Changes
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Changes Modal -->
+<dialog id="preview-modal" class="modal">
+    <div class="modal-box max-w-4xl">
+        <h3 class="font-bold text-lg mb-4">
+            <i class="fas fa-eye mr-2"></i>
+            Preview Changes
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Before -->
+            <div>
+                <h4 class="font-semibold mb-2 text-error">Before (Current)</h4>
+                <div class="bg-base-200 p-4 rounded-lg">
+                    <div class="text-sm mb-2">
+                        <strong>Name:</strong> {{ template.name }}
+                    </div>
+                    <div class="text-sm mb-2">
+                        <strong>Category:</strong> {{ template.category or 'None' }}
+                    </div>
+                    <div class="text-sm mb-2">
+                        <strong>Variables:</strong> {{ template.variables|length }}
+                    </div>
+                    <div class="bg-base-100 p-2 rounded text-xs font-mono">
+                        <pre class="whitespace-pre-wrap">{{ template.text }}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- After -->
+            <div>
+                <h4 class="font-semibold mb-2 text-success">After (Preview)</h4>
+                <div id="preview-content" class="bg-base-200 p-4 rounded-lg">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Close Preview</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resetForm() {
+    if (confirm('Are you sure you want to reset all changes? This will restore the original values.')) {
+        location.reload();
+    }
+}
+
+function previewChanges() {
+    const form = document.querySelector('form');
+    const formData = new FormData(form);
+    
+    const name = formData.get('name');
+    const category = formData.get('category');
+    const text = formData.get('text');
+    
+    // Extract variables from text
+    const variablePattern = /<%=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*%>/g;
+    const variables = [];
+    let match;
+    while ((match = variablePattern.exec(text)) !== null) {
+        if (!variables.includes(match[1])) {
+            variables.push(match[1]);
+        }
+    }
+    
+    const previewContent = document.getElementById('preview-content');
+    previewContent.innerHTML = `
+        <div class="text-sm mb-2">
+            <strong>Name:</strong> ${name}
+        </div>
+        <div class="text-sm mb-2">
+            <strong>Category:</strong> ${category || 'None'}
+        </div>
+        <div class="text-sm mb-2">
+            <strong>Variables:</strong> ${variables.length} (${variables.join(', ')})
+        </div>
+        <div class="bg-base-100 p-2 rounded text-xs font-mono">
+            <pre class="whitespace-pre-wrap">${text}</pre>
+        </div>
+    `;
+    
+    document.getElementById('preview-modal').showModal();
+}
+
+// Handle category selection
+document.querySelector('select[name="category"]').addEventListener('change', function(e) {
+    if (e.target.value === 'custom') {
+        const customCategory = prompt('Enter new category name:');
+        if (customCategory) {
+            e.target.value = customCategory;
+        } else {
+            e.target.value = '{{ template.category or "" }}';
+        }
+    }
+});
+
+// Update variables display when template text changes
+document.getElementById('template-text').addEventListener('input', function(e) {
+    const text = e.target.value;
+    const variablePattern = /<%=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*%>/g;
+    const variables = [];
+    let match;
+    
+    while ((match = variablePattern.exec(text)) !== null) {
+        if (!variables.includes(match[1])) {
+            variables.push(match[1]);
+        }
+    }
+    
+    const variablesContainer = document.getElementById('current-variables');
+    if (variables.length > 0) {
+        variablesContainer.innerHTML = variables.map(v => 
+            `<span class="badge badge-primary">${v}</span>`
+        ).join('');
+    } else {
+        variablesContainer.innerHTML = '<span class="text-base-content/50 italic">No variables detected</span>';
+    }
+});
+
+// Auto-save draft to localStorage
+const form = document.querySelector('form');
+const templateId = '{{ template.id }}';
+
+// Load draft if exists
+const draftKey = `template_edit_draft_${templateId}`;
+const savedDraft = localStorage.getItem(draftKey);
+if (savedDraft) {
+    try {
+        const draft = JSON.parse(savedDraft);
+        if (confirm('Found a saved draft. Would you like to restore it?')) {
+            Object.entries(draft).forEach(([key, value]) => {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input) {
+                    input.value = value;
+                    // Trigger input event to update variables display
+                    if (key === 'text') {
+                        input.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+        } else {
+            localStorage.removeItem(draftKey);
+        }
+    } catch (e) {
+        localStorage.removeItem(draftKey);
+    }
+}
+
+// Save draft on input
+let saveTimeout;
+form.addEventListener('input', function(e) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        const formData = new FormData(form);
+        const draft = {};
+        formData.forEach((value, key) => {
+            draft[key] = value;
+        });
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+    }, 1000);
+});
+
+// Clear draft on successful submission
+form.addEventListener('submit', function() {
+    localStorage.removeItem(draftKey);
+});
+
+// Handle HTMX errors for preview
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.target.id === 'template-preview') {
+        console.error('Preview error:', evt.detail);
+        evt.detail.target.innerHTML = '<p class="text-error">Preview temporarily unavailable</p>';
+    }
+});
+
+document.body.addEventListener('htmx:sendError', function(evt) {
+    if (evt.detail.target.id === 'template-preview') {
+        console.error('Preview network error:', evt.detail);
+        evt.detail.target.innerHTML = '<p class="text-warning">Connection error - preview unavailable</p>';
+    }
+});
+</script>
+{% endblock %}

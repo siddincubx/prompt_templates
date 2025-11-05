@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Prompt Template Engine{% endblock %}
+
+{% block content %}
+<div class="hero min-h-[60vh] bg-gradient-to-r from-primary to-secondary text-primary-content rounded-lg mb-8">
+    <div class="hero-content text-center">
+        <div class="max-w-md">
+            <h1 class="mb-5 text-5xl font-bold">
+                <i class="fas fa-magic mr-3"></i>
+                Prompt Engine
+            </h1>
+            <p class="mb-5 text-lg">
+                Create, manage, and reuse prompt templates with AI assistance. 
+                Transform your ideas into powerful prompts with variable support.
+            </p>
+            <div class="flex gap-4 justify-center">
+                <a href="/templates/create" class="btn btn-accent btn-lg">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create Template
+                </a>
+                <a href="/templates" class="btn btn-outline btn-lg">
+                    <i class="fas fa-list mr-2"></i>
+                    Browse Templates
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" hx-get="/api/stats" hx-trigger="load" hx-target="#stats-container">
+    <div id="stats-container" class="contents">
+        <!-- Stats will be loaded here -->
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-primary">
+                <i class="fas fa-file-alt text-3xl"></i>
+            </div>
+            <div class="stat-title">Total Templates</div>
+            <div class="stat-value">Loading...</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-secondary">
+                <i class="fas fa-chart-line text-3xl"></i>
+            </div>
+            <div class="stat-title">Total Usage</div>
+            <div class="stat-value">Loading...</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-accent">
+                <i class="fas fa-star text-3xl"></i>
+            </div>
+            <div class="stat-title">Most Used</div>
+            <div class="stat-value text-sm">Loading...</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-info">
+                <i class="fas fa-tags text-3xl"></i>
+            </div>
+            <div class="stat-title">Categories</div>
+            <div class="stat-value">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Templates -->
+<div class="card bg-base-200 shadow-xl">
+    <div class="card-body">
+        <h2 class="card-title text-2xl mb-4">
+            <i class="fas fa-clock mr-2"></i>
+            Recent Templates
+        </h2>
+        
+        <div id="recent-templates" hx-get="/api/templates?limit=5" hx-trigger="load">
+            <div class="flex justify-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-8">
+    <h2 class="text-2xl font-bold mb-4 text-center">Quick Actions</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- AI Generate -->
+        <div class="card bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-xl">
+            <div class="card-body text-center">
+                <i class="fas fa-robot text-4xl mb-3"></i>
+                <h3 class="card-title justify-center">AI Generate</h3>
+                <p>Let AI create a template for you based on your requirements</p>
+                <div class="card-actions justify-center mt-4">
+                    <a href="/templates/create" class="btn btn-ghost text-white border-white hover:bg-white hover:text-purple-500">
+                        Generate Now
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Browse & Use -->
+        <div class="card bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-xl">
+            <div class="card-body text-center">
+                <i class="fas fa-search text-4xl mb-3"></i>
+                <h3 class="card-title justify-center">Browse & Use</h3>
+                <p>Explore existing templates and use them with your own data</p>
+                <div class="card-actions justify-center mt-4">
+                    <a href="/templates" class="btn btn-ghost text-white border-white hover:bg-white hover:text-blue-500">
+                        Browse Now
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custom Create -->
+        <div class="card bg-gradient-to-br from-green-500 to-teal-500 text-white shadow-xl">
+            <div class="card-body text-center">
+                <i class="fas fa-edit text-4xl mb-3"></i>
+                <h3 class="card-title justify-center">Manual Create</h3>
+                <p>Create templates manually with full control over structure</p>
+                <div class="card-actions justify-center mt-4">
+                    <a href="/templates/create" class="btn btn-ghost text-white border-white hover:bg-white hover:text-green-500">
+                        Create Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Handle stats loading
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'stats-container') {
+        // Stats loaded, can add any additional processing here
+    }
+});
+
+// Handle recent templates loading
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'recent-templates') {
+        // Recent templates loaded
+    }
+});
+</script>
+{% endblock %}

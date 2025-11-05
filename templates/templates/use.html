@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Use {{ template.name }} - Prompt Template Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="breadcrumbs text-sm">
+            <ul>
+                <li><a href="/templates">Templates</a></li>
+                <li><a href="/templates/{{ template.id }}">{{ template.name }}</a></li>
+                <li>Use Template</li>
+            </ul>
+        </div>
+        
+        <h1 class="text-3xl font-bold mt-2">
+            <i class="fas fa-play mr-2"></i>
+            Use Template: {{ template.name }}
+        </h1>
+        
+        {% if template.description %}
+        <p class="text-base-content/70 mt-2">{{ template.description }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Column: Variable Form -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-edit mr-2"></i>
+                    Fill Variables
+                </h2>
+                <p class="text-base-content/70 mb-4">
+                    Enter values for all variables in your template.
+                </p>
+                
+                <form id="use-template-form" 
+                      hx-post="/api/templates/{{ template.id }}/use-form" 
+                      hx-target="#result-container" 
+                      hx-swap="innerHTML"
+                      hx-indicator="#form-loading"
+                      hx-trigger="submit">
+                    
+                    {% for variable in template.variables %}
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-semibold">{{ variable }}</span>
+                            <span class="label-text-alt">Required</span>
+                        </label>
+                        <input type="text" 
+                               name="variable_values.{{ variable }}" 
+                               class="input input-bordered" 
+                               placeholder="Enter {{ variable }}"
+                               required>
+                        <label class="label">
+                            <span class="label-text-alt">Variable: {{ variable }}</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="card-actions justify-end mt-6">
+                        <button type="button" onclick="clearForm()" class="btn btn-ghost">
+                            <i class="fas fa-refresh mr-2"></i>
+                            Clear All
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-magic mr-2"></i>
+                            Generate Prompt
+                            <span id="form-loading" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Right Column: Template Preview & Result -->
+        <div class="space-y-6">
+            <!-- Template Preview -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-eye mr-2"></i>
+                        Template Preview
+                    </h2>
+                    <div class="bg-base-100 p-4 rounded-lg border font-mono text-sm">
+                        <pre class="whitespace-pre-wrap">{{ template.text }}</pre>
+                    </div>
+                    
+                    {% if template.variables %}
+                    <div class="mt-4">
+                        <h3 class="font-semibold mb-2">Variables:</h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for variable in template.variables %}
+                            <span class="badge badge-outline">{{ variable }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Result Container -->
+            <div id="result-container">
+                <div class="card bg-base-300 shadow-xl border-dashed border-2">
+                    <div class="card-body text-center">
+                        <i class="fas fa-arrow-left text-4xl text-base-content/30 mb-4"></i>
+                        <h3 class="text-lg font-semibold mb-2">Generated Prompt Will Appear Here</h3>
+                        <p class="text-base-content/70">
+                            Fill in the variables on the left to see your generated prompt.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="flex justify-between mt-8">
+        <a href="/templates/{{ template.id }}" class="btn btn-ghost">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Template
+        </a>
+        <a href="/templates" class="btn btn-outline">
+            <i class="fas fa-list mr-2"></i>
+            Browse Templates
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function clearForm() {
+    document.getElementById('use-template-form').reset();
+    document.getElementById('result-container').innerHTML = `
+        <div class="card bg-base-300 shadow-xl border-dashed border-2">
+            <div class="card-body text-center">
+                <i class="fas fa-arrow-left text-4xl text-base-content/30 mb-4"></i>
+                <h3 class="text-lg font-semibold mb-2">Generated Prompt Will Appear Here</h3>
+                <p class="text-base-content/70">
+                    Fill in the variables on the left to see your generated prompt.
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+// Handle form submission result
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'result-container') {
+        try {
+            console.log('HTMX response received:', evt.detail.xhr.responseText);
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            
+            if (data.error) {
+                // Handle error response
+                evt.detail.target.innerHTML = `
+                    <div class="card bg-error text-error-content shadow-xl">
+                        <div class="card-body">
+                            <h2 class="card-title">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Error
+                            </h2>
+                            <p>Error: ${data.error}</p>
+                        </div>
+                    </div>
+                `;
+            } else if (data.final_prompt) {
+                // Handle success response
+                evt.detail.target.innerHTML = `
+                    <div class="card bg-success text-success-content shadow-xl">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="card-title">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    Generated Prompt
+                                </h2>
+                                <div class="btn-group">
+                                    <button onclick="copyPrompt()" class="btn btn-sm bg-success-content text-success hover:bg-opacity-80">
+                                        <i class="fas fa-copy mr-2"></i>
+                                        Copy
+                                    </button>
+                                    <button onclick="downloadPrompt()" class="btn btn-sm bg-success-content text-success hover:bg-opacity-80">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-success-content text-success p-4 rounded-lg">
+                                <pre id="final-prompt" class="whitespace-pre-wrap">${data.final_prompt}</pre>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h3 class="font-semibold mb-2">Variables Used:</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    ${Object.entries(data.variables_used).map(([key, value]) => 
+                                        `<div class="bg-success-content text-success px-3 py-1 rounded text-sm">
+                                            <strong>${key}:</strong> ${value}
+                                        </div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 text-sm opacity-80">
+                                <i class="fas fa-chart-line mr-1"></i>
+                                Template usage count has been incremented.
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error('Error parsing HTMX response:', e);
+            // Handle error response
+            evt.detail.target.innerHTML = `
+                <div class="card bg-error text-error-content shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Error
+                        </h2>
+                        <p>An error occurred while generating the prompt. Please check your input and try again.</p>
+                        <details class="mt-2">
+                            <summary>Technical details</summary>
+                            <pre class="text-xs mt-2">${evt.detail.xhr.responseText}</pre>
+                        </details>
+                    </div>
+                </div>
+            `;
+        }
+    }
+});
+
+// Handle HTMX errors
+document.body.addEventListener('htmx:responseError', function(evt) {
+    console.error('HTMX Response Error:', evt.detail);
+    if (evt.detail.target.id === 'result-container') {
+        evt.detail.target.innerHTML = `
+            <div class="card bg-error text-error-content shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Request Failed
+                    </h2>
+                    <p>Status: ${evt.detail.xhr.status} - ${evt.detail.xhr.statusText}</p>
+                    <details class="mt-2">
+                        <summary>Technical details</summary>
+                        <pre class="text-xs mt-2">${evt.detail.xhr.responseText}</pre>
+                    </details>
+                </div>
+            </div>
+        `;
+    }
+});
+
+// Handle HTMX network errors
+document.body.addEventListener('htmx:sendError', function(evt) {
+    console.error('HTMX Send Error:', evt.detail);
+    if (evt.detail.target.id === 'result-container') {
+        evt.detail.target.innerHTML = `
+            <div class="card bg-error text-error-content shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <i class="fas fa-wifi mr-2"></i>
+                        Connection Error
+                    </h2>
+                    <p>Could not connect to the server. Please check your connection and try again.</p>
+                </div>
+            </div>
+        `;
+    }
+});
+
+function copyPrompt() {
+    const content = document.getElementById('final-prompt').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        showToast('Prompt copied to clipboard!', 'success');
+    }).catch(err => {
+        showToast('Failed to copy to clipboard', 'error');
+    });
+}
+
+function downloadPrompt() {
+    const content = document.getElementById('final-prompt').textContent;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ template.name }}_prompt.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showToast('Prompt downloaded!', 'success');
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-top toast-end';
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+    const icon = type === 'success' ? 'fas fa-check' : 'fas fa-exclamation-triangle';
+    
+    toast.innerHTML = `
+        <div class="alert ${alertClass}">
+            <i class="${icon} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Auto-save form data to localStorage
+const form = document.getElementById('use-template-form');
+const templateId = '{{ template.id }}';
+
+// Load saved data
+const savedData = localStorage.getItem(`template_${templateId}_data`);
+if (savedData) {
+    const data = JSON.parse(savedData);
+    Object.entries(data).forEach(([key, value]) => {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input) {
+            input.value = value;
+            // Trigger change event to update preview
+            input.dispatchEvent(new Event('change'));
+        }
+    });
+}
+
+// Save data on change
+form.addEventListener('input', function(e) {
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+    localStorage.setItem(`template_${templateId}_data`, JSON.stringify(data));
+});
+</script>
+{% endblock %}
