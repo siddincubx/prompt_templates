@@ -23,6 +23,7 @@
                                class="input input-bordered flex-1"
                                hx-get="/templates"
                                hx-trigger="keyup changed delay:500ms"
+                               hx-select="#templates-container"
                                hx-target="#templates-container"
                                hx-include="[name='category']">
                         <button class="btn btn-square btn-primary">
@@ -39,6 +40,7 @@
                     <select name="category" class="select select-bordered"
                             hx-get="/templates"
                             hx-trigger="change"
+                            hx-select="#templates-container"
                             hx-target="#templates-container"
                             hx-include="#search-input">
                         <option value="">All Categories</option>

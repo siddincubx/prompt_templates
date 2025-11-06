@@ -2,6 +2,9 @@ class Template{
     text string
     variables string[]
     title string
+    category string @description(#"
+        Category associated with the template, used for categorization and search.
+    "#)
 }
 
 function CreateTemplate(requirement : string) -> Template{

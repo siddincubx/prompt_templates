@@ -37,7 +37,7 @@ class AIService:
                 "text": result.text,
                 "variables": result.variables,
                 "suggested_name": result.title,
-                "suggested_category": self._suggest_category_from_requirement(requirement)
+                "suggested_category": result.category
             }
             
         except Exception as e:

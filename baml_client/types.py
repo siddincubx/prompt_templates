@@ -51,6 +51,7 @@ class Template(BaseModel):
     text: str
     variables: typing.List[str]
     title: str
+    category: str
 
 # #########################################################################
 # Generated type aliases (0)

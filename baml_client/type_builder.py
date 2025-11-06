@@ -96,7 +96,7 @@ class TemplateAst:
     def __init__(self, tb: type_builder.TypeBuilder):
         _tb = tb._tb # type: ignore (we know how to use this private attribute)
         self._bldr = _tb.class_("Template")
-        self._properties: typing.Set[str] = set([  "text",  "variables",  "title",  ])
+        self._properties: typing.Set[str] = set([  "text",  "variables",  "title",  "category",  ])
         self._props = TemplateProperties(self._bldr, self._properties)
 
     def type(self) -> baml_py.FieldType:
@@ -135,6 +135,10 @@ class TemplateProperties:
     @property
     def title(self) -> type_builder.ClassPropertyViewer:
         return type_builder.ClassPropertyViewer(self.__bldr.property("title"))
+    
+    @property
+    def category(self) -> type_builder.ClassPropertyViewer:
+        return type_builder.ClassPropertyViewer(self.__bldr.property("category"))
     
     
 
