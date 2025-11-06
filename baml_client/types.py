@@ -41,8 +41,11 @@ def all_succeeded(checks: typing.Dict[CheckName, Check]) -> bool:
 # #########################################################################
 
 # #########################################################################
-# Generated classes (1)
+# Generated classes (2)
 # #########################################################################
+
+class PromptTrialResult(BaseModel):
+    text: str
 
 class Template(BaseModel):
     text: str

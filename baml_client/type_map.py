@@ -16,6 +16,9 @@ from . import stream_types
 
 type_map = {
 
+    "types.PromptTrialResult": types.PromptTrialResult,
+    "stream_types.PromptTrialResult": stream_types.PromptTrialResult,
+
     "types.Template": types.Template,
     "stream_types.Template": stream_types.Template,
 

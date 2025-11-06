@@ -112,6 +112,77 @@
         </div>
     </div>
     
+    <!-- Prompt Trial Modal -->
+    <div id="trial-modal" class="modal">
+        <div class="modal-box max-w-7xl">
+            <h3 class="font-bold text-lg mb-4">
+                <i class="fas fa-flask mr-2"></i>
+                Try Your Prompt
+            </h3>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Left side - Prompt and Controls -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Generated Prompt</span>
+                        </label>
+                        <textarea id="trial-prompt-text" class="textarea textarea-bordered w-full h-48" readonly></textarea>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Select AI Model</span>
+                        </label>
+                        <select id="trial-model-select" class="select select-bordered">
+                            <option value="">Choose a model...</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gpt-4">GPT-4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button id="trial-run-button" 
+                                onclick="runPromptTrial()" 
+                                class="btn btn-primary flex-1"
+                                disabled>
+                            <i class="fas fa-play mr-2"></i>
+                            Run Trial
+                            <span id="trial-loading" class="loading loading-spinner loading-sm hidden"></span>
+                        </button>
+                        <button onclick="closeTrialModal()" class="btn btn-ghost">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancel
+                        </button>
+                    </div>
+                    
+                    <div id="trial-status" class="text-sm text-base-content/70 hidden">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Rate limited: 1 request per 10 seconds
+                    </div>
+                </div>
+                
+                <!-- Right side - Results -->
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">AI Response</span>
+                    </label>
+                    <div id="trial-result-container" class="bg-base-200 rounded-lg p-4 h-80 overflow-y-auto">
+                        <div class="text-center text-base-content/50 mt-16">
+                            <i class="fas fa-robot text-4xl mb-4"></i>
+                            <p>Select a model and click "Run Trial" to see the AI response</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-action">
+                <button onclick="closeTrialModal()" class="btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Navigation -->
     <div class="flex justify-between mt-8">
         <a href="/templates/{{ template.id }}" class="btn btn-ghost">
@@ -181,6 +252,10 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
                                     <button onclick="downloadPrompt()" class="btn btn-sm bg-success-content text-success hover:bg-opacity-80">
                                         <i class="fas fa-download mr-2"></i>
                                         Download
+                                    </button>
+                                    <button onclick="openTrialModal()" class="btn btn-sm bg-success-content text-success hover:bg-opacity-80">
+                                        <i class="fas fa-flask mr-2"></i>
+                                        Try Prompt
                                     </button>
                                 </div>
                             </div>
@@ -340,5 +415,178 @@ form.addEventListener('input', function(e) {
     });
     localStorage.setItem(`template_${templateId}_data`, JSON.stringify(data));
 });
+
+// Trial functionality
+let lastTrialTime = 0;
+const TRIAL_COOLDOWN = 10000; // 10 seconds in milliseconds
+let countdownInterval = null;
+
+function openTrialModal() {
+    const promptText = document.getElementById('final-prompt').textContent;
+    document.getElementById('trial-prompt-text').value = promptText;
+    document.getElementById('trial-modal').classList.add('modal-open');
+    
+    // Enable/disable run button based on model selection and cooldown
+    const modelSelect = document.getElementById('trial-model-select');
+    const runButton = document.getElementById('trial-run-button');
+    
+    modelSelect.addEventListener('change', function() {
+        updateTrialButtonState();
+    });
+    
+    // Update button state on modal open
+    updateTrialButtonState();
+}
+
+function updateTrialButtonState() {
+    const modelSelect = document.getElementById('trial-model-select');
+    const runButton = document.getElementById('trial-run-button');
+    const statusDiv = document.getElementById('trial-status');
+    
+    // Clear any existing countdown
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    
+    const now = Date.now();
+    const timeSinceLastTrial = now - lastTrialTime;
+    const remainingCooldown = Math.max(0, TRIAL_COOLDOWN - timeSinceLastTrial);
+    
+    if (remainingCooldown > 0) {
+        runButton.disabled = true;
+        statusDiv.innerHTML = `
+            <i class="fas fa-clock mr-1"></i>
+            Please wait ${Math.ceil(remainingCooldown / 1000)} seconds before next trial
+        `;
+        statusDiv.classList.remove('hidden');
+        
+        // Update countdown every second
+        countdownInterval = setInterval(() => {
+            const now = Date.now();
+            const remaining = Math.max(0, TRIAL_COOLDOWN - (now - lastTrialTime));
+            
+            if (remaining > 0) {
+                statusDiv.innerHTML = `
+                    <i class="fas fa-clock mr-1"></i>
+                    Please wait ${Math.ceil(remaining / 1000)} seconds before next trial
+                `;
+            } else {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                updateTrialButtonState();
+            }
+        }, 1000);
+    } else if (!modelSelect.value) {
+        runButton.disabled = true;
+        statusDiv.innerHTML = `
+            <i class="fas fa-info-circle mr-1"></i>
+            Please select a model to run the trial
+        `;
+        statusDiv.classList.remove('hidden');
+    } else {
+        runButton.disabled = false;
+        statusDiv.classList.add('hidden');
+    }
+}
+
+function closeTrialModal() {
+    document.getElementById('trial-modal').classList.remove('modal-open');
+    // Clear any running countdown intervals when modal is closed
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    const statusDiv = document.getElementById('trial-status');
+    statusDiv.classList.add('hidden');
+}
+
+async function runPromptTrial() {
+    const now = Date.now();
+    const timeSinceLastTrial = now - lastTrialTime;
+    
+    if (timeSinceLastTrial < TRIAL_COOLDOWN) {
+        const remainingTime = Math.ceil((TRIAL_COOLDOWN - timeSinceLastTrial) / 1000);
+        showToast(`Please wait ${remainingTime} seconds before next trial`, 'error');
+        return;
+    }
+    
+    const promptText = document.getElementById('trial-prompt-text').value;
+    const selectedModel = document.getElementById('trial-model-select').value;
+    const runButton = document.getElementById('trial-run-button');
+    const loading = document.getElementById('trial-loading');
+    const resultContainer = document.getElementById('trial-result-container');
+    
+    if (!promptText || !selectedModel) {
+        showToast('Please select a model', 'error');
+        return;
+    }
+    
+    // Show loading state
+    runButton.disabled = true;
+    loading.classList.remove('hidden');
+    resultContainer.innerHTML = `
+        <div class="text-center mt-16">
+            <div class="loading loading-spinner loading-lg mb-4"></div>
+            <p>Running trial with ${selectedModel}...</p>
+        </div>
+    `;
+    
+    try {
+        // Create form data
+        const formData = new FormData();
+        formData.append('prompt_text', promptText);
+        formData.append('model', selectedModel);
+        
+        // Send request
+        const response = await fetch(`/api/templates/${templateId}/trial`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Trial failed');
+        }
+        
+        // Show result
+        resultContainer.innerHTML = `
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-semibold">AI Response</h4>
+                    <span class="badge badge-outline">${result.model_used}</span>
+                </div>
+                <div class="bg-base-100 p-4 rounded-lg border">
+                    <pre class="whitespace-pre-wrap text-sm">${result.text}</pre>
+                </div>
+                <div class="text-xs text-base-content/70">
+                    <i class="fas fa-clock mr-1"></i>
+                    Trial completed successfully
+                </div>
+            </div>
+        `;
+        
+        // Update last trial time and enable cooldown
+        lastTrialTime = now;
+        showToast('Trial completed successfully', 'success');
+        
+    } catch (error) {
+        console.error('Trial error:', error);
+        resultContainer.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <div>
+                    <h4>Trial Failed</h4>
+                    <p class="text-sm">${error.message}</p>
+                </div>
+            </div>
+        `;
+        showToast('Trial failed: ' + error.message, 'error');
+    } finally {
+        loading.classList.add('hidden');
+        updateTrialButtonState();
+    }
+}
 </script>
 {% endblock %}

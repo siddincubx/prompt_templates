@@ -30,6 +30,12 @@ class LlmResponseParser:
         result = self.__options.merge_options(baml_options).parse_response(function_name="CreateTemplate", llm_response=llm_response, mode="request")
         return typing.cast(types.Template, result)
 
+    def DoPromptTrial(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> types.PromptTrialResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="DoPromptTrial", llm_response=llm_response, mode="request")
+        return typing.cast(types.PromptTrialResult, result)
+
     
 
 class LlmStreamParser:
@@ -43,5 +49,11 @@ class LlmStreamParser:
     ) -> stream_types.Template:
         result = self.__options.merge_options(baml_options).parse_response(function_name="CreateTemplate", llm_response=llm_response, mode="stream")
         return typing.cast(stream_types.Template, result)
+
+    def DoPromptTrial(
+        self, llm_response: str, baml_options: BamlCallOptions = {},
+    ) -> stream_types.PromptTrialResult:
+        result = self.__options.merge_options(baml_options).parse_response(function_name="DoPromptTrial", llm_response=llm_response, mode="stream")
+        return typing.cast(stream_types.PromptTrialResult, result)
 
     

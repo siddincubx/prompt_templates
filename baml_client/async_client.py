@@ -94,6 +94,21 @@ class BamlAsyncClient:
                 "requirement": requirement,
             })
             return typing.cast(types.Template, result.cast_to(types, types, stream_types, False, __runtime__))
+    async def DoPromptTrial(self, promptText: str,
+        baml_options: BamlCallOptions = {},
+    ) -> types.PromptTrialResult:
+        # Check if on_tick is provided
+        if 'on_tick' in baml_options:
+            # Use streaming internally when on_tick is provided
+            stream = self.stream.DoPromptTrial(promptText=promptText,
+                baml_options=baml_options)
+            return await stream.get_final_response()
+        else:
+            # Original non-streaming code
+            result = await self.__options.merge_options(baml_options).call_function_async(function_name="DoPromptTrial", args={
+                "promptText": promptText,
+            })
+            return typing.cast(types.PromptTrialResult, result.cast_to(types, types, stream_types, False, __runtime__))
     
 
 
@@ -115,6 +130,18 @@ class BamlStreamClient:
           lambda x: typing.cast(types.Template, x.cast_to(types, types, stream_types, False, __runtime__)),
           ctx,
         )
+    def DoPromptTrial(self, promptText: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.BamlStream[stream_types.PromptTrialResult, types.PromptTrialResult]:
+        ctx, result = self.__options.merge_options(baml_options).create_async_stream(function_name="DoPromptTrial", args={
+            "promptText": promptText,
+        })
+        return baml_py.BamlStream[stream_types.PromptTrialResult, types.PromptTrialResult](
+          result,
+          lambda x: typing.cast(stream_types.PromptTrialResult, x.cast_to(types, types, stream_types, True, __runtime__)),
+          lambda x: typing.cast(types.PromptTrialResult, x.cast_to(types, types, stream_types, False, __runtime__)),
+          ctx,
+        )
     
 
 class BamlHttpRequestClient:
@@ -130,6 +157,13 @@ class BamlHttpRequestClient:
             "requirement": requirement,
         }, mode="request")
         return result
+    async def DoPromptTrial(self, promptText: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="DoPromptTrial", args={
+            "promptText": promptText,
+        }, mode="request")
+        return result
     
 
 class BamlHttpStreamRequestClient:
@@ -143,6 +177,13 @@ class BamlHttpStreamRequestClient:
     ) -> baml_py.baml_py.HTTPRequest:
         result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="CreateTemplate", args={
             "requirement": requirement,
+        }, mode="stream")
+        return result
+    async def DoPromptTrial(self, promptText: str,
+        baml_options: BamlCallOptions = {},
+    ) -> baml_py.baml_py.HTTPRequest:
+        result = await self.__options.merge_options(baml_options).create_http_request_async(function_name="DoPromptTrial", args={
+            "promptText": promptText,
         }, mode="stream")
         return result
     

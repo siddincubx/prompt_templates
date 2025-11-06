@@ -120,6 +120,47 @@ async def use_template_form(template_id: int, request: Request):
         from fastapi.responses import JSONResponse
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+@api_router.post("/templates/{template_id}/trial")
+async def trial_prompt(template_id: int, request: Request):
+    """Trial a generated prompt with selected AI model"""
+    try:
+        form_data = await request.form()
+        
+        # Extract data from form
+        prompt_text = form_data.get('prompt_text', '')
+        selected_model = form_data.get('model', '')
+        
+        print(f"Trial request - prompt_text length: {len(prompt_text)}, model: {selected_model}")  # Debug log
+        
+        if not prompt_text.strip():
+            from fastapi.responses import JSONResponse
+            return JSONResponse(content={"error": "No prompt text provided"}, status_code=400)
+        
+        if not selected_model:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(content={"error": "No model selected"}, status_code=400)
+        
+        # Use AI service to trial the prompt
+        from ..services.ai_service import ai_service
+        result = await ai_service.do_prompt_trial(prompt_text, selected_model)
+        
+        # Return JSON response for HTMX to handle
+        from fastapi.responses import JSONResponse
+        return JSONResponse(content={
+            "text": result["text"],
+            "model_used": selected_model,
+            "prompt_text": prompt_text
+        })
+        
+    except ValueError as e:
+        print(f"ValueError in trial_prompt: {e}")  # Debug log
+        from fastapi.responses import JSONResponse
+        return JSONResponse(content={"error": str(e)}, status_code=400)
+    except Exception as e:
+        print(f"Error in trial_prompt: {e}")  # Debug log
+        from fastapi.responses import JSONResponse
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
 @api_router.post("/generate-template", response_model=GenerateTemplateResponse)
 async def generate_template(request: GenerateTemplateRequest):
     """Generate a template using AI"""

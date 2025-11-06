@@ -61,7 +61,13 @@ client<llm> CustomGemini {
     api_key env.GEMINI_API_KEY
   }
 }
-
+client<llm> Gemini25Pro {
+  provider google-ai
+  options {
+    model "gemini-2.5-pro"
+    api_key env.GEMINI_API_KEY
+  }
+}
 // Example AWS Bedrock client (uncomment to use)
 // client<llm> CustomBedrock {
 //   provider aws-bedrock
